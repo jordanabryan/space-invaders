@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+	<meta charset='UTF-8'>
+	<title></title>
+
+	<script src='classes/sprite.js'></script>
+	<script src='classes/text.js'></script>
+	<script src='classes/soundefx.js'></script>
+
+	<script src='classes/player.js'></script>
+	<script src='classes/mothership.js'></script>
+	<script src='classes/enemy.js'></script>
+	<script src='classes/bullet.js'></script>
+	<script src='classes/bomb.js'></script>	
+	<script src='classes/block.js'></script>
+
+	<script src='classes/bombs.js'></script>
+	<script src='classes/enemies.js'></script>
+	<script src='classes/blocks.js'></script>
+
+	<script src='classes/background.js'></script>
+	<script src='classes/startscreen.js'></script>
+	<script src='classes/gameover.js'></script>
+
+</head>
+
+<body>
+
+<!-- http://www.codeproject.com/Articles/681130/Learn-JavaScript-Part-Space-Invaders -->
+<canvas id='game-canvas' width='600' height='500'></canvas>
+
+<script>
+
+function Game(options){
+	this.id = options.id;
+	this.width = options.width;
+	this.height = options.height;
+	
+	this.gameOverCheck = false;
+	this.startGame = false;
+	this.pause = false;
+	this.playing = false;
+	
+	this.level = 1;
+	
+	this.canvas = document.getElementById(this.id);
+	this.ctx = this.canvas.getContext('2d');
+
+	keys = [];
+	bullets = [];
+	blocks = [];
+	enemybombs = [];
+	bossbombs = [];
+	enemies = [];
+
+	this.blocktotal = 5;
+	this.outblocks = 0;
+
+	this.bullettotal = 1;
+	this.outbullets = 0;
+	
+	this.bombstotal = 1;
+	this.outbombs = 0;
+	
+	this.bossbombstotal = 1;
+	this.outbossbombs = 0;
+	this.bossBombDropped = false;
+
+	background = new Background(this.ctx, 0, 0, this.width, this.height, '#000');
+	startScreen = new StartScreen(this.ctx, 0, 0, this.width, this.height, '#000');
+	gameover = new GameOver(this.ctx, 0, 0, this.width, this.height, '#000');
+
+	player = new Player(this.ctx, this.width / 2, 450, 26, 16, '#fff');
+	mothership = new Mothership(this.ctx, -2000, 50, 48, 21, '#fff');
+	enemyC = new Enemies(this.ctx, this);
+	blockC = new Blocks(this.ctx);
+	
+	bombs = new Bombs(this.ctx);
+
+	livesText = new Text(this.ctx, 10, 30, '#fff', '15px Calibri', 'left');
+	scoreText = new Text(this.ctx, 110, 30, '#fff', '15px Calibri', 'left');
+	
+	playerExplosion = new SoundEfx('assets/explosion.wav');
+	invaderExplosion = new SoundEfx('assets/invaderkilled.wav');
+	playerShoot = new SoundEfx('assets/shoot.wav');
+
+	this.startMenu();
+
+};
+
+Game.prototype = {
+	init: function(){
+		if(this.playing == true){
+			this.resetLevel();
+			this.playing == false;
+		}
+		window.addEventListener('keydown', this.onKeyDown.bind(this));
+		window.addEventListener('keyup', this.onKeyUp.bind(this));
+		var _this = this;
+		(function animloop(){
+			_this.animation = window.requestAnimationFrame(animloop);
+			_this.loop();
+		})();
+	},
+	
+	resetGame: function(){
+		blockC.reset();
+		bombs.remove();
+		player.resetScore();
+		player.resetLives();
+		enemyC.resetEnemies();
+		enemyC.resetLevel();
+	},
+	
+	updateBulletTotal: function(invader){
+		this.bullettotal++;
+	},
+	
+	resetLevel: function(){
+		blockC.reset();
+		bombs.remove();
+		enemyC.resetEnemies();
+		enemyC.updateLevel();
+		this.updateBulletTotal();
+	},
+
+	gameOver: function() {
+		gameover.render(this);
+		window.removeEventListener('keydown', this.onKeyDown);
+		window.removeEventListener('keyup', this.onKeyUp);
+		window.cancelAnimationFrame(this.animation);
+		this.resetGame();
+	},
+
+	startMenu: function(){
+		startScreen.render(this);
+	},
+
+	onKeyDown: function(evt){
+		if(evt.keyCode == 32){
+			player.shoot(evt.keyCode);
+		} else {
+			keys[evt.keyCode] = true;
+		}
+	},
+	
+	onKeyUp: function(evt){
+		if(evt.keyCode){
+			keys[evt.keyCode] = false;
+		}
+	},
+	
+	movement: function(){
+		enemyC.movement(this);
+		mothership.move();
+	},
+	
+	shooting: function(){
+		enemyC.shoot();
+		mothership.shoot();
+	},
+	
+	draw: function(){
+	
+		if(player.getLives() <= 0){
+			this.gameOver();
+		} else {
+		
+			if(enemyC.getLength() == 0){
+				this.resetLevel();
+			}
+			
+			livesText.setText('Lives ' + player.getLives());
+			scoreText.setText('Score ' + player.getScore());
+			background.render();
+
+			if(bullets.length > (this.outbullets - 1) && (this.outbullets > 0)){
+				for(var i = 0; i < bullets.length; i++){
+					bullets[i].render();
+				}
+			}
+			
+			bombs.render();
+			blockC.render();
+			player.render();	
+			enemyC.render();
+			livesText.render();
+			scoreText.render();
+			mothership.render();
+			
+		}
+		
+	},
+
+	loop: function(){
+		if(this.gameOverCheck == true){
+			this.gameOver();
+		} else {
+			this.movement();
+			this.shooting();
+			this.draw();
+		}
+	},
+};
+
+
+var _gameoptions = {
+	'id': 'game-canvas',
+	'width' : 600,
+	'height' : 500,
+	'level' : 1,
+};
+
+var game = new Game(_gameoptions);
+	
+// game.init();
+
+
+</script>
+
+</body>
+</html>
